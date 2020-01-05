@@ -106,7 +106,7 @@ instanceof  判断对象的具体类型    example： A instanceof Object   返�
 
 执行了
 
-#### IIEF （Immediately-Invoked Function Expression） 匿名函数自调用
+#### IIFE（Immediately-Invoked Function Expression） 匿名函数自调用
 
 ##### 作用
 
