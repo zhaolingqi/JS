@@ -16,15 +16,15 @@ function getUserAction(e) {
 // }
 
 // 第二、三版 将this指针指向正确的对象，添加event
-//setTimeout返回定时器ID，可利用clearTimeout(ID)将定时器清除
+// setTimeout返回定时器ID，可利用clearTimeout(ID)将定时器清除
 // function debounce(func, wait) {
 //     var timeout
 //     return function() {
 //         // var context = this
-//         var args = arguments
+//         // var args = arguments
 //         clearTimeout(timeout)
 //         timeout = setTimeout(() => {
-//             func.apply(this, args)
+//             func.apply(this, arguments)
 //         }, wait)
 //     }
 // }
@@ -51,5 +51,5 @@ function debounce(func, wait, immediate) {
 
 
 // JS在事件处理函数中提供事件对象event
-container.onmousemove = debounce(getUserAction, 100, true);
+container.onmousemove = debounce(getUserAction, 1000, true);
 // container.onmousemove = getUserAction

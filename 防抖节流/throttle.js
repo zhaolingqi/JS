@@ -144,12 +144,10 @@ function throttle(func, wait, options) {
         context = this
         args = arguments
         if(remaining <=0 || remaining > wait) {
-
             if(timeout) {
                 clearTimeout(timeout)
                 timeout = null
             }
-
             previous = now
             func.apply(context, args)
             // if(!timeout) {
