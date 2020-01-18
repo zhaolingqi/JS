@@ -349,3 +349,367 @@ for(let x of myObject) {
 
    
 
+## 第九章 JavaScript中的类
+
+### 类的声明
+
+```js
+class Person {
+    
+    // 等价于构造函数，
+    constructor(name) {
+        this.name = name
+    }
+	// 等价于原型上声明的方法
+    sayName() {
+        console.log(this.name)
+    }
+}
+
+let p = new Person('hahha')
+console.log(typeof Person)  // function
+console.log(Object.getOwnPropertyDescriptor(Person, "prototype"))
+//{ value: Person {},
+//  writable: false,
+//  enumerable: false,
+//  configurable: false }
+```
+
+类声明仅仅时基于已有的自定义类型声明的语法糖。Person声明实际上创建了一个具有构造函数方法行为的函数，`sayName`实际上是`Person.prototype`上的一个方法
+
+与函数不同的是，类属性不可被赋予新值
+
+**类与自定义类型的差别：**
+
+- 函数声明可以被提升，而类声明与let声明类似，不会被提升
+- 类声明中的所有代码将自动运行在严格模式下
+- 在自定义类型中，可以通过        `Object.defineProperty()`手工指定某个方法为不可枚举，而在类中，所有方法都是不可枚举的
+- 每个类都有一个名为`[[Construct]]`的内部方法，通过关键词new调用那些不含`[[Construct]]`的方法会导致程序报错
+- 使用除关键词 new 以外的方法调用类的构造函数会导致程序抛出错误
+- 在类中修改类名会导致程序报错
+
+​     
+
+##  Promise
+
+### Promise的基础知识
+
+#### promise的生命周期
+
+- pending 进行中
+- fulfilled Promise异步操作完成
+- rejected 由于程序出错或者其他一些原因，Promise异步操作未能成功
+
+内部属性`[[PromiseState]]`用于表示上述三种状态。这个属性不暴露在Promise对象上，不能以编程的方式检测Promise的状态
+
+所有Promise都有`then()`方法，接受两个参数：第一个是当Promise的状态变为fulfilled时要调用的函数，第二个是状态变为rejected时调用的函数s
+
+> 如果有一个对象实现了上述的then()方法，则将这个对象称之为`thenable`对象。所有的对象都是`thenable`对象，但并非所有的`thenable`对象都是Promise
+
+Promise还有一个`catch()`方法，相当于只给传入拒绝处理程序的`then()`方法
+
+```js
+let fs = require("fs")
+function readFile(filename) {
+    return new Promise((resolve, reject) => {
+        // 触发异步操作
+        fs.readFile(filename, {encoding: "utf-8"}, (err, contents) => {
+            if(err) {
+                reject(err)
+                return ;
+            }
+            resolve(contents)
+        })
+    })
+}
+let promise = readFile("example.txt")
+
+// 同时监听执行完成和执行被拒
+// promise.then((value) => {
+//     // 执行完成
+//     console.log(value)
+// }, (err) => {
+//     //拒绝
+//     console.log(err)
+// })
+
+// 上下两种效果一样
+
+// 同时监听执行完成和执行被拒
+promise.then((value) => {
+    // 执行完成
+    console.log(value)
+}).catch((err) => {
+    console.log(err)
+})
+```
+
+
+
+#### 执行器错误
+
+如果执行器内部抛出一个错误，则Promise的拒绝处理程序会被调用
+
+```js
+let pro = new Promise((resolve, reject) => {
+    throw new Error("EEEEEE")
+})
+pro.catch(err => console.log(err))
+
+```
+
+每个执行其中都隐含一个try-catch块，上例等价于
+
+```js
+let pro = new Promise((resolve, reject) => {
+    try {
+        throw new Error("EEEEEE")
+    } catch(ex) {
+        reject(ex)
+    }
+})
+pro.catch(err => console.log(err))
+```
+
+
+
+### 全局Promise拒绝处理
+
+如果在没有拒绝处理程序的情况下拒绝一个Promise，那么不会提示失败信息。
+
+Promise的特性决定了很难检测一个Promise是否被处理过，任何时候都可以调用`then()`或者`catch()`方法，无论Promise是否已经解决，这两个方法都可以正常运行，但这样很难知道一个Promise何时被处理。
+
+#### Node.js环境的拒绝处理
+
+在`Node.js`中处理Promise拒绝时会触发`process`对象上的两个事件
+
+- `unhandledRejection`在一个事件循环中，当Promise被拒绝，并且没有提供拒绝处理
+- `rejectionHandled` 在一个事件循环后，当Promise被拒绝时，若拒绝处理程序被调用，触发该事件
+
+每次调用`then()``catch()`方法时实际上创建并返回了另一个Promise，只有当第一个Promise完成或被拒绝后，第二个才会被解决。
+
+```js
+let rejected
+
+process.on("unhandledRejection", function(reason, promise) {
+    console.log(reason.message)
+    console.log(promise === rejected)
+})
+
+rejected = Promise.reject(new Error("EEEEE"))
+```
+
+
+
+#### 浏览器环境的拒绝处理
+
+也是通过触发上面两个事件来进行Promise的拒绝处理，不过这两个事件是在window对象上的。且两个事件中都可以使用拒绝值
+
+
+
+```js
+let rejected
+
+window.onunhandledrejection = function(event) {
+    console.log(event.type, event.reason, event.promise)
+}
+
+window.onrejectionhandled = function(event) {
+    console.log(event.type, event.reason, event.promise)
+}
+
+rejected = Promise.reject(new Error("EEEEE"))
+```
+
+
+
+### 串联Promise
+
+每次调用`then()``catch()`方法实际上创建并返回了另一个Promise，只有当第一个Promise完成或被拒绝后，第二个才会被解决
+
+```js
+let p1 = new Promise((resolve, reject) => {
+    resolve(42)
+})
+
+p1.then(value => console.log(value))
+    .then(() => console.log('Finished'))
+```
+
+调用`p1.then()`后返回第二个Promise，紧接着又调用了它的`then()`方法
+
+#### 捕获错误
+
+~~~js
+let p1 = new Promise((resolve, reject) => {
+    resolve(42)
+})
+
+p1.then(value => throw new Error("Boom!"))
+    .catch((err) => console.log(err.message))
+~~~
+
+p1的完成处理程序抛出一个错误，链式调用第二个Promise的catch方法后，通过它的拒绝处理程序接受这个错误。
+
+> 务必在Promise链的末尾留有一个拒绝处理程序以确保能够正确处理所有可能发送的错误
+
+#### Promise链中的返回值
+
+Promise链的另一个重要特性是可以给下游Promise传递数据
+
+```js
+let p1 = new Promise((resolve, reject) => {
+    resolve(42)
+})
+
+p1.then(value => {
+  	console.log(value)  //42
+    return value + 1  
+}).then((value) => {
+    console.log(value)  //43
+})
+```
+
+如果返回的是Promise对象，会通过一个额外的步骤确定下一步怎么走
+
+~~~js
+let p1 = new Promise((resolve, reject) => {
+    resolve(42)
+})
+
+let p2 = new Promise((resolve, reject) => {
+    resolve(44)
+})
+
+p1.then(value => {
+  	console.log(value)  //42
+    return p2  
+}).then((value) => {
+    console.log(value)  //44
+})
+~~~
+
+
+
+### 响应多个Promise
+
+`Promise.all()`和`Promise.race()`两个方法可以监听多个Promise  
+
+#### `Promise.all()`方法
+
+`Promise.all()`方法只接受一个参数并返回一个Promise，该参数是一个含有多个受监视Promise的可迭代对象（例如，一个数组），只有当可迭代对象中所有Promise都被解决后返回的Promise才会被解决，只有当可迭代对象中所有Promise都被完成后返回的Promise才会被完成
+
+```js
+let p1 = new Promise((resolve, reject) => {
+    setTimeout(() => {
+        resolve(42)
+    }, 1000)
+})
+
+let p2 = new Promise((resolve, reject) => {
+    setTimeout(() => {
+        resolve(44)
+    }, 2000)
+})
+
+let p3 = new Promise((resolve, reject) => {
+    setTimeout(() => {
+        resolve(45)
+    }, 4000)
+})
+
+let p4 = Promise.all([p1, p2, p3])
+let pre = +new Date()
+p4.then((value) => {
+    console.log(+new Date() - pre)  // 4001
+    console.log(value)  // 42 44 45
+})
+```
+
+所有传入`Promise.all()`方法的Promise只要有一个被拒绝，那么返回的Promise没等所有Promise都完成就立即被拒绝
+
+```js
+let p1 = new Promise((resolve, reject) => {
+
+    setTimeout(() => {
+        resolve(42)
+    }, 1000)
+})
+
+let p2 = new Promise((resolve, reject) => {
+
+    setTimeout(() => {
+        reject(44)
+    }, 2000)
+})
+
+let p3 = new Promise((resolve, reject) => {
+
+    setTimeout(() => {
+        resolve(45)
+    }, 4000)
+})
+
+let p4 = Promise.all([p1, p2, p3])
+let pre = +new Date()
+p4.then((value) => {
+    console.log(+new Date() - pre)
+    console.log(value)
+}).catch((err) => {
+    console.log(+new Date() - pre)  // 2001
+    console.log(err)  // 44
+})
+```
+
+#### `Promise.race()`
+
+`Promise.race()`方法监听多个Promise的方法稍有不同，只要有一个Promise被解决返回的Promise就被解决
+
+传给`Promise.race()`方法的Promise会进行竞选，以决出哪一个先被解决，如果先解决的是已完成Promise，则返回已完成Promise。如果先解决的是已拒绝Promise，则返回已拒绝Promise。
+
+
+
+### await 和 async
+
+#### async
+
+> 函数前面的async一词意味着一个简单的事情：这个函数总是返回一个promise，如果代码中有return <非promise>语句，JavaScript会自动把返回的这个value值包装成promise的resolved值;调用就像普通函数一样调用,但是后面可以跟then()了
+
+#### await
+
+> await只能在async函数里使用,它可以让JavaScript进行等待，直到一个promise执行并返回它的结果，JavaScript才会继续往下执行.
+>  await 可以用于等待的实际是一个返回值,可是promise的返回值,也可以是普通函数的返回值,或者使一个变量, 注意到 await 不仅仅用于等 Promise 对象，它可以等任意表达式的结果，所以，await 后面实际是可以接普通函数调用或者直接变量的。
+
+```js
+async function f() {    // await 只能在async函数中使用
+    let promise = new Promise((resolve, reject) => {
+        setTimeout(() => resolve('done!'), 1000)
+    })
+    let result = await promise   //  直到promise返回一个resolve值（*）才会执行下一句
+    alert(result) // 'done!' 
+}
+f()
+```
+
+##### await的异常处理
+
+多个await连续时，会一个一个同步执行，如果中间有一个reject了，就会停止后面代码的执行，所以需要用`try ... catch`处理错误
+
+```js
+ async getFaceResult () {
+       try {
+          let location = await this.getLocation(this.phoneNum);
+           if (location.data.success) {
+                   let province = location.data.obj.province;
+                    let city = location.data.obj.city;
+                    let result = await this.getFaceList(province, city);
+                    if (result.data.success) {
+                       this.faceList = result.data.obj;
+                   }
+               }
+       } catch(err) {
+            console.log(err);
+       }
+ }
+```
+

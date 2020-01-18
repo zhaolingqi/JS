@@ -53,3 +53,17 @@ function debounce(func, wait, immediate) {
 // JS在事件处理函数中提供事件对象event
 container.onmousemove = debounce(getUserAction, 1000, true);
 // container.onmousemove = getUserAction
+
+
+
+function debounce1(func, wait) {
+    let timeout
+    let args
+    return function() {
+        args = arguments
+        if(timeout) clearTimeout(timeout)
+        timeout = setTimeout(function() {
+            func.call(this, args)
+        }, wait)
+    }
+}
