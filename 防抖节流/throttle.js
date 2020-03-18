@@ -168,5 +168,5 @@ function throttle(func, wait, options) {
 
 
 // JS在事件处理函数中提供事件对象event
-container.onmousemove = throttle(getUserAction, 1000, {trailing:false});
+container.onmousemove = throttle(getUserAction, 1000, {trailing:true});
 // container.onmousemove = getUserAction

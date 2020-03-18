@@ -33,17 +33,17 @@ function getUserAction(e) {
 function debounce(func, wait, immediate) {
     var timeout
     return function () {
-        // var context = this
+        var context = this
         var args = arguments
         if (timeout) clearTimeout(timeout)
         if (immediate) {
             // 如果已经执行过，不再执行
             var callNow = !timeout
             timeout = setTimeout(() => { timeout = null }, wait)
-            if (callNow) func.apply(this, args)
+            if (callNow) func.call(context, args)
         } else {
             timeout = setTimeout(() => {
-                func.apply(this, args)
+                func.call(context, args)
             }, wait)
         }
     }

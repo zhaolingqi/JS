@@ -72,3 +72,9 @@ innerWidth、innerHeight、outerWidth、OuterHeight
 
 
 
+## navigator对象
+
+识别客户端浏览器的事实标准
+
+
+

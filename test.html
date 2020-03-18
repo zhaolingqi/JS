@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+</head>
+<body>
+    <iframe name = "richedit" style = "height:1000px;width:1000px;" src = "blank.html"></iframe>
+    <script type="text/javascript">
+        // let frames = document.getElementById("richedit")
+        window.addEventListener("load", function() {
+            // console.log(frames.document.designMode)
+            frames["richedit"].document.designMode = "on"
+        })
+        // frames["richedit"].document.execCommand("insertimage",false,"/1562569673374.png")
+        frames["richedit"].document.execCommand("bold", false, null)
+    </script>
+</body>
+</html>
